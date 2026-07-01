@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --green: #1F4D3A;
+  --green-deep: #0F291D;
+  --olive: #6B8E23;
+  --cream: #F8F6F0;
+  --gold: #D4AF37;
+  --green-light: #2a6650;
+  --green-dark: #163728;
+  --shadow-card: 0 4px 24px rgba(31, 77, 58, 0.08);
+  --shadow-hover: 0 12px 48px rgba(31, 77, 58, 0.16);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply font-sans bg-white text-gray-900 overflow-x-hidden;
+}
+
+h1, h2, h3, h4 {
+  @apply font-serif;
+}
+
+@layer utilities {
+  .text-green { color: var(--green); }
+  .text-olive { color: var(--olive); }
+  .text-gold { color: var(--gold); }
+  .bg-green { background-color: var(--green); }
+  .bg-green-dark { background-color: var(--green-dark); }
+  .bg-olive { background-color: var(--olive); }
+  .bg-cream { background-color: var(--cream); }
+  .bg-gold { background-color: var(--gold); }
+  .border-green { border-color: var(--green); }
+  .border-gold { border-color: var(--gold); }
+
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-hover { box-shadow: var(--shadow-hover); }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-cream {
+    background: rgba(248, 246, 240, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+/* Scroll reveal base */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Stagger children */
+.stagger > *:nth-child(1) { transition-delay: 0ms; }
+.stagger > *:nth-child(2) { transition-delay: 80ms; }
+.stagger > *:nth-child(3) { transition-delay: 160ms; }
+.stagger > *:nth-child(4) { transition-delay: 240ms; }
+.stagger > *:nth-child(5) { transition-delay: 320ms; }
+.stagger > *:nth-child(6) { transition-delay: 400ms; }
+
+/* Scroll arrow animation */
+@keyframes scrollDown {
+  0% { transform: scaleY(0); transform-origin: top; }
+  50% { transform: scaleY(1); transform-origin: top; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+
+.scroll-arrow {
+  width: 1px;
+  height: 48px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.5), transparent);
+  animation: scrollDown 2s ease-in-out infinite;
+}
+
+/* WhatsApp float pulse */
+@keyframes waPulse {
+  0%, 100% { box-shadow: 0 4px 24px rgba(37,211,102,0.4); }
+  50% { box-shadow: 0 4px 40px rgba(37,211,102,0.7), 0 0 0 8px rgba(37,211,102,0.1); }
+}
+
+.wa-float {
+  animation: waPulse 3s ease-in-out infinite;
+}
+
+/* Gold badge pulse */
+@keyframes badgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.badge-dot {
+  animation: badgePulse 2s infinite;
+}
