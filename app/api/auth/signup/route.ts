@@ -75,15 +75,20 @@ export async function POST(req: NextRequest) {
 
     // Create user
     console.log("Creating user");
-    const user = await User.create({
+    const userData: any = {
       name: validatedData.name,
       email: validatedData.email,
       phone: validatedData.phone,
       password: hashedPassword,
       address: validatedData.address,
       referralCode,
-      referredBy,
-    });
+    };
+    
+    if (referredBy) {
+      userData.referredBy = referredBy;
+    }
+    
+    const user = await User.create(userData);
     console.log("User created:", user._id);
 
     // Generate token
