@@ -14,6 +14,11 @@ export interface ISettings extends Document {
   logo: string;
   heroImage: string;
   referralBanner: string;
+  deliveryCharge: number;
+  minimumOrder: number;
+  subscriptionDiscount: number;
+  freeDeliveryLimit: number;
+  taxPercentage: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,6 +76,26 @@ const SettingsSchema = new Schema<ISettings>(
     referralBanner: {
       type: String,
       default: "",
+    },
+    deliveryCharge: {
+      type: Number,
+      default: 30,
+    },
+    minimumOrder: {
+      type: Number,
+      default: 100,
+    },
+    subscriptionDiscount: {
+      type: Number,
+      default: 10,
+    },
+    freeDeliveryLimit: {
+      type: Number,
+      default: 500,
+    },
+    taxPercentage: {
+      type: Number,
+      default: 0,
     },
   },
   {

@@ -39,8 +39,14 @@ export async function GET(req: NextRequest) {
     const query = activeOnly ? { $or: [{ active: true }, { active: { $exists: false } }] } : {};
     const products = await Product.find(query).sort({ createdAt: -1 });
 
+    // Ensure availability is always correct based on stockStatus and stock
+   const productsWithCorrectAvailability = products.map(product => ({
+      ...product.toObject(),
+      availability: (product.stock === 0 || product.stockStatus === "out_of_stock") ? "Out of Stock" : "In Stock",
+    }));
+
     return NextResponse.json(
-      { products },
+      { products: productsWithCorrectAvailability },
       { status: 200 }
     );
   } catch (error) {
@@ -58,12 +64,15 @@ export async function POST(req: NextRequest) {
     if (authCheck.status !== 200) return authCheck;
 
     const body = await req.json();
+    console.log("Received product data:", body);
     
     const validatedData = productSchema.parse(body);
+    console.log("Validated product data:", validatedData);
 
     await connectDB();
 
     const product = await Product.create(validatedData);
+    console.log("Created product:", product);
 
     return NextResponse.json(
       { message: "Product created successfully", product },
@@ -71,6 +80,7 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("Zod validation error:", error.issues);
       return NextResponse.json(
         { error: error.issues[0].message },
         { status: 400 }
@@ -79,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     console.error("Create product error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }
     );
   }

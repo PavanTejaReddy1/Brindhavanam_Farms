@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import SectionHeader from "./SectionHeader";
 import { useState, useEffect } from "react";
+import { usePolling } from "@/lib/hooks/usePolling";
 
 interface Product {
   _id: string;
@@ -42,6 +43,9 @@ export default function Products() {
       setLoading(false);
     }
   };
+
+  // Use polling to auto-refresh products every 30 seconds
+  usePolling(fetchProducts, { interval: 30000, immediate: false });
 
   if (loading) {
     return (
@@ -100,14 +104,16 @@ export default function Products() {
                   transition={{ duration: 0.5 }}
                   className="w-full h-full flex items-center justify-center"
                 >
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    width={280}
-                    height={220}
-                    className="object-contain rounded-xl cursor-pointer"
-                    loading="lazy"
-                  />
+                  <Link href={"/products/" + product.slug}>
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      width={280}
+                      height={220}
+                      className="object-contain rounded-xl cursor-pointer"
+                      loading="lazy"
+                    />
+                  </Link>
                 </motion.div>
               </div>
 
@@ -156,7 +162,7 @@ export default function Products() {
                 >
                   {product.displayPrice}
                 </span>
-                {product.stockStatus === "out_of_stock" ? (
+                {(product.stockStatus === "out_of_stock" || product.stock === 0) ? (
                   <span
                     className="text-sm font-semibold px-5 py-2.5 rounded-full"
                     style={{

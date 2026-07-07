@@ -17,6 +17,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   logout: () => void;
@@ -37,6 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(storedToken);
       setIsAuthenticated(true);
     }
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -124,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, signup, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, signup, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

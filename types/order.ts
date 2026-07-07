@@ -22,6 +22,7 @@ export interface ProductDetail {
   sizes: string[];
   stock?: number;
   stockStatus?: string;
+  category?: string;
 }
 
 export interface CustomerDetails {
@@ -51,6 +52,8 @@ export interface OrderSelection {
   deliveryCharges: number;
   deliveryWindow: string;
   grandTotal: number;
+  orderType?: "subscription" | "one-time";
+  oneTimeQuantity?: number;
 }
 
 export interface OrderState extends OrderSelection, CustomerDetails {}

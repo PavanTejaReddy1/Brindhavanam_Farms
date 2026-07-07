@@ -139,6 +139,7 @@ export default function AdminOrdersClient() {
                     <th className="px-6 py-4 text-left text-sm font-semibold text-[#10271C]">Customer</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-[#10271C]">Product</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-[#10271C]">Quantity</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-[#10271C]">Order Type</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-[#10271C]">Subscription</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-[#10271C]">Amount</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-[#10271C]">Status</th>
@@ -155,6 +156,15 @@ export default function AdminOrdersClient() {
                       </td>
                       <td className="px-6 py-4 text-sm text-[#666]">{order.productName}</td>
                       <td className="px-6 py-4 text-sm text-[#666]">{order.quantity}</td>
+                      <td className="px-6 py-4">
+                        <span className={`text-xs px-3 py-1 rounded-full ${
+                          order.orderType === "subscription"
+                            ? "bg-[#D4AF37]/20 text-[#D4AF37]"
+                            : "bg-[#10271C]/10 text-[#10271C]"
+                        }`}>
+                          {order.orderType === "subscription" ? "Subscription" : "One-Time"}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-sm text-[#666]">{order.subscription || "None"}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-[#10271C]">₹{order.amount}</td>
                       <td className="px-6 py-4">
@@ -181,7 +191,7 @@ export default function AdminOrdersClient() {
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={8} className="px-6 py-8 text-center text-[#666]">
+                      <td colSpan={9} className="px-6 py-8 text-center text-[#666]">
                         No orders found
                       </td>
                     </tr>

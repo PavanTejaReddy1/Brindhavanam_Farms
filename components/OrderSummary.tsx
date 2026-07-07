@@ -18,6 +18,7 @@ export default function OrderSummary({
   showDeliveryCharges = true,
 }: OrderSummaryProps) {
   const planLabel = formatPlanLabel(order.plan, order.subscriptionDays);
+  const isOneTime = order.orderType === "one-time";
 
   return (
     <motion.div
@@ -42,6 +43,9 @@ export default function OrderSummary({
               {order.productName}
             </h3>
             <p className="text-sm text-[#666]">{order.quantityLabel}</p>
+            <p className="text-xs text-[#D4AF37] mt-1">
+              {isOneTime ? "One-Time Order" : "Subscription"}
+            </p>
           </div>
         </div>
       )}
@@ -58,14 +62,14 @@ export default function OrderSummary({
         {variant === "compact" && (
           <SummaryRow label="Product" value={order.productName} />
         )}
-        <SummaryRow label="Quantity" value={order.quantityLabel} />
+        <SummaryRow label="Quantity" value={isOneTime ? `${order.oneTimeQuantity || 1} × ${order.quantityLabel}` : order.quantityLabel} />
         <SummaryRow
-          label="Price per Day"
+          label={isOneTime ? "Price per unit" : "Price per Day"}
           value={
             <AnimatedPrice value={order.pricePerDay} className="font-semibold" />
           }
         />
-        <SummaryRow label="Plan" value={planLabel} />
+        {!isOneTime && <SummaryRow label="Plan" value={planLabel} />}
         {showDeliveryCharges && (
           <SummaryRow
             label="Delivery Charges"
@@ -79,7 +83,7 @@ export default function OrderSummary({
         <SummaryRow label="Delivery" value={order.deliveryWindow} />
       </div>
 
-      {variant === "compact" && (
+      {variant === "compact" && !isOneTime && (
         <motion.div
           layout
           className="mt-6 pt-4 border-t border-[#10271C]/10"

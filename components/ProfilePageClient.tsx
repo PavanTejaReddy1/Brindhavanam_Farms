@@ -9,10 +9,12 @@ import { fetchWithAuth } from "@/lib/api";
 
 export default function ProfilePageClient() {
   const router = useRouter();
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout, updateProfile, isLoading } = useAuth();
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [referralData, setReferralData] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -28,8 +30,50 @@ export default function ProfilePageClient() {
         email: user.email || "",
         address: user.address || "",
       });
+      fetchOrders();
+      fetchReferralData();
     }
   }, [user]);
+
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/orders/user", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setOrders(data.orders || []);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      setOrders([]);
+    }
+  };
+
+  const fetchReferralData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/referrals/my", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setReferralData(data);
+    } catch (error) {
+      console.error("Error fetching referral data:", error);
+      setReferralData(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8F6F0] flex items-center justify-center">
+        <p className="text-[#666]">Loading...</p>
+      </div>
+    );
+  }
 
   if (!user) {
     router.push("/login?redirect=/profile");
@@ -285,11 +329,11 @@ export default function ProfilePageClient() {
                 </motion.button>
                 <div className="grid grid-cols-2 gap-4 pt-4">
                   <div className="text-center">
-                    <p className="text-2xl font-serif font-bold text-[#D4AF37]">0</p>
+                    <p className="text-2xl font-serif font-bold text-[#D4AF37]">{referralData?.totalReferrals || 0}</p>
                     <p className="text-white/70 text-sm">Friends Referred</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-serif font-bold text-[#D4AF37]">0</p>
+                    <p className="text-2xl font-serif font-bold text-[#D4AF37]">₹{referralData?.totalEarnings || 0}</p>
                     <p className="text-white/70 text-sm">Rewards Earned</p>
                   </div>
                 </div>
@@ -306,9 +350,57 @@ export default function ProfilePageClient() {
               <h2 className="font-serif text-xl font-semibold text-[#10271C] mb-6">
                 Order History
               </h2>
-              <div className="text-center py-8">
-                <p className="text-[#666]">No orders yet</p>
-              </div>
+              {orders.length > 0 ? (
+                <div className="space-y-4">
+                  {orders.map((order) => (
+                    <div
+                      key={order._id}
+                      className="p-4 rounded-xl bg-[#F8F6F0] border border-[#10271C]/10"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="font-medium text-[#10271C]">{order.productName}</p>
+                          <p className="text-sm text-[#666]">{order.quantity}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-[#10271C]">₹{order.amount}</p>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              order.status === "Delivered"
+                                ? "bg-green-100 text-green-700"
+                                : order.status === "Out for Delivery"
+                                ? "bg-blue-100 text-blue-700"
+                                : order.status === "Preparing"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {order.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            order.orderType === "subscription"
+                              ? "bg-[#D4AF37]/20 text-[#D4AF37]"
+                              : "bg-[#10271C]/10 text-[#10271C]"
+                          }`}
+                        >
+                          {order.orderType === "subscription" ? "Subscription" : "One-Time Order"}
+                        </span>
+                        <span className="text-xs text-[#666]">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-[#666]">No orders yet</p>
+                </div>
+              )}
             </motion.div>
 
             {/* Settings */}

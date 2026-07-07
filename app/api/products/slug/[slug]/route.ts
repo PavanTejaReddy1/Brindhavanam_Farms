@@ -25,7 +25,13 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ product }, { status: 200 });
+    // Ensure availability is always correct based on stockStatus and stock
+    const productWithCorrectAvailability = {
+      ...product.toObject(),
+      availability: (product.stock === 0 || product.stockStatus === "out_of_stock") ? "Out of Stock" : "In Stock",
+    };
+
+    return NextResponse.json({ product: productWithCorrectAvailability }, { status: 200 });
   } catch (error) {
     console.error("Get product by slug error:", error);
     return NextResponse.json(

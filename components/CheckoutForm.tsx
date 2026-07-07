@@ -41,10 +41,14 @@ export default function CheckoutForm() {
     } else if (!/^\d{6}$/.test(order.pincode)) {
       next.pincode = "Pincode must be 6 digits";
     }
-    if (!order.startDate) {
-      next.startDate = "Start date is required";
-    } else if (order.startDate < minDate || order.startDate > maxDate) {
-      next.startDate = "Please select a date between tomorrow and 90 days from now";
+    
+    // Only validate start date for subscription orders
+    if (order.orderType === "subscription" || !order.orderType) {
+      if (!order.startDate) {
+        next.startDate = "Start date is required";
+      } else if (order.startDate < minDate || order.startDate > maxDate) {
+        next.startDate = "Please select a date between tomorrow and 90 days from now";
+      }
     }
 
     return next;
@@ -200,19 +204,28 @@ export default function CheckoutForm() {
           <h2 className="font-serif text-xl font-semibold text-[#10271C] mb-4">
             Start Date
           </h2>
-          <Field label="Select delivery start date" required error={errors.startDate}>
-            <input
-              type="date"
-              value={order.startDate}
-              min={minDate}
-              max={maxDate}
-              onChange={(e) => handleChange("startDate", e.target.value)}
-              className={inputClass(errors.startDate)}
-            />
-          </Field>
-          <p className="text-xs text-[#666] mt-2">
-            Earliest: tomorrow · Latest: 90 days from today
-          </p>
+          {order.orderType === "subscription" || !order.orderType ? (
+            <>
+              <Field label="Select delivery start date" required error={errors.startDate}>
+                <input
+                  type="date"
+                  value={order.startDate}
+                  min={minDate}
+                  max={maxDate}
+                  onChange={(e) => handleChange("startDate", e.target.value)}
+                  className={inputClass(errors.startDate)}
+                />
+              </Field>
+              <p className="text-xs text-[#666] mt-2">
+                Earliest: tomorrow · Latest: 90 days from today
+              </p>
+            </>
+          ) : (
+            <div className="p-4 rounded-2xl border-2 border-[#10271C] bg-[#10271C]/5">
+              <p className="font-semibold text-[#10271C]">Expected Delivery: Within 2-3 business days</p>
+              <p className="text-sm text-[#666] mt-1">We'll contact you to confirm delivery time</p>
+            </div>
+          )}
         </section>
 
         <section>

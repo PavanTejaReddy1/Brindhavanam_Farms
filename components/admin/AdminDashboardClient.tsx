@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Gift
 } from "lucide-react";
+import { usePolling } from "@/lib/hooks/usePolling";
 
 export default function AdminDashboardClient() {
   const [kpiData, setKpiData] = useState<any[]>([]);
@@ -35,14 +36,15 @@ export default function AdminDashboardClient() {
       const ordersData = await fetchWithAdminAuth("/api/orders");
       const orders = ordersData.orders || [];
       
-      // Fetch users for latest customers
-      const usersData = await fetchWithAdminAuth("/api/users/profile");
+      // Fetch all users for latest customers
+      const usersData = await fetchWithAdminAuth("/api/users");
+      const users = usersData.users || [];
       
       // Fetch products for low stock
       const productsData = await fetchWithAdminAuth("/api/products");
       const products = productsData.products || [];
       
-      // Fetch inventory
+      // Fetch inventory (now uses Product collection)
       const inventoryData = await fetchWithAdminAuth("/api/inventory");
       const inventory = inventoryData.inventory || [];
 
@@ -53,16 +55,19 @@ export default function AdminDashboardClient() {
         return orderDate.toDateString() === today.toDateString();
       });
 
+      const todaySubscriptionOrders = todayOrders.filter((o: any) => o.orderType === "subscription");
+      const todayOneTimeOrders = todayOrders.filter((o: any) => o.orderType === "one-time");
+
       const pendingOrders = orders.filter((o: any) => o.status === "Pending");
       
       const totalRevenue = orders.reduce((sum: number, o: any) => sum + (o.amount || 0), 0);
       
-      const lowStock = inventory.filter((i: any) => i.stock < 100);
+      const lowStock = products.filter((p: any) => p.stock < 10);
 
       setKpiData([
-        { icon: ShoppingCart, label: "Today's Orders", value: todayOrders.length, change: "+12%", positive: true },
-        { icon: RefreshCw, label: "Pending Orders", value: pendingOrders.length, change: "+2", positive: false },
-        { icon: Users, label: "Total Customers", value: usersData.user ? 1 : 0, change: "+15", positive: true },
+        { icon: ShoppingCart, label: "Today's Subscription Orders", value: todaySubscriptionOrders.length, change: "+8%", positive: true },
+        { icon: RefreshCw, label: "Today's One-Time Orders", value: todayOneTimeOrders.length, change: "+4%", positive: true },
+        { icon: Users, label: "Total Customers", value: users.length, change: "+15", positive: true },
         { icon: Package, label: "Total Products", value: products.length, change: "+5", positive: true },
         { icon: DollarSign, label: "Total Revenue", value: `₹${totalRevenue.toLocaleString()}`, change: "+18%", positive: true },
       ]);
@@ -70,16 +75,24 @@ export default function AdminDashboardClient() {
       setRecentOrders(orders.slice(0, 5));
       setLowStockProducts(lowStock.slice(0, 3));
       
-      // Mock latest customers for now (would need separate endpoint)
-      setLatestCustomers([
-        { name: usersData.user?.name || "Sample User", phone: usersData.user?.phone || "91XXXXXXXXXX", joined: "Today", status: "Active" },
-      ]);
+      // Use real latest customers from users
+      setLatestCustomers(
+        users.slice(0, 5).map((user: any) => ({
+          name: user.name,
+          phone: user.phone,
+          joined: new Date(user.createdAt).toLocaleDateString(),
+          status: "Active",
+        }))
+      );
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Use polling to auto-refresh dashboard every 30 seconds
+  usePolling(fetchDashboardData, { interval: 30000, immediate: false });
 
   if (loading) {
     return (

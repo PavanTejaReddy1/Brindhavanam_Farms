@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Leaf, Clock, CheckCircle } from "lucide-react";
+import { Leaf, Clock, CheckCircle, XCircle } from "lucide-react";
 import SubscriptionHeader from "@/components/SubscriptionHeader";
 import ProductSelector from "@/components/ProductSelector";
 import SubscriptionSelector from "@/components/SubscriptionSelector";
@@ -17,6 +17,7 @@ import {
   getSubscriptionDays,
 } from "@/lib/products";
 import type { ProductDetail, SubscriptionPlanType } from "@/types/order";
+import { usePolling } from "@/lib/hooks/usePolling";
 
 interface ProductPageClientProps {
   productSlug: string;
@@ -30,6 +31,8 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
   const [quantityId, setQuantityId] = useState("");
   const [plan, setPlan] = useState<SubscriptionPlanType>("30");
   const [customDays, setCustomDays] = useState(30);
+  const [orderType, setOrderType] = useState<"subscription" | "one-time">("subscription");
+  const [oneTimeQuantity, setOneTimeQuantity] = useState(1);
 
   useEffect(() => {
     fetchProduct();
@@ -48,20 +51,20 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
           label: v.label,
           pricePerDay: v.pricePerDay,
         })),
+        // Always calculate availability from stockStatus to ensure accuracy
+        availability: mongoProduct.stock === 0 || mongoProduct.stockStatus === "out_of_stock" ? "Out of Stock" : "In Stock",
       };
       setProduct(mappedProduct);
     } catch (error) {
-      console.error("Error fetching product from API, falling back to static data:", error);
-      // Fallback to static data
-      const { getProductBySlug } = await import("@/lib/products");
-      const staticProduct = getProductBySlug(productSlug);
-      if (staticProduct) {
-        setProduct(staticProduct);
-      }
+      console.error("Error fetching product from API:", error);
+      setProduct(null);
     } finally {
       setLoading(false);
     }
   };
+
+  // Use polling to auto-refresh product every 30 seconds
+  usePolling(fetchProduct, { interval: 30000, immediate: false });
 
   // Initialize state when product loads
   useEffect(() => {
@@ -73,25 +76,43 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
     setQuantityId(shouldUseOrderState ? order.quantityId : defaultQty.id);
     setPlan(shouldUseOrderState ? order.plan : "30");
     setCustomDays(shouldUseOrderState ? order.customDays : 30);
-  }, [product, order]);
+    
+    // Only set order type if not already set in order state
+    if (!order.orderType) {
+      const isDailyProduct = ["milk", "curd", "buttermilk"].includes(product.category?.toLowerCase() || "");
+      setOrderType(isDailyProduct ? "subscription" : "one-time");
+    }
+  }, [product, order.productSlug, order.quantityId, order.plan, order.customDays, order.orderType]);
+
+  const selectedQty = product?.quantities.find((q) => q.id === quantityId) ?? product?.quantities[0];
+  const subscriptionDays = getSubscriptionDays(plan, customDays);
+  const grandTotal = calculateGrandTotal(
+    selectedQty?.pricePerDay || 0,
+    subscriptionDays,
+    product?.deliveryCharges || 0
+  );
 
   const handleSubscribe = useCallback(() => {
-    if (!product) return;
+    if (!product || !selectedQty) return;
     
     setProductSelection({
       productSlug: product.slug,
       productName: product.name,
       productImage: product.image,
-      quantityId: product.quantities.find((q) => q.id === quantityId)?.id || product.quantities[0].id,
-      quantityLabel: product.quantities.find((q) => q.id === quantityId)?.label || product.quantities[0].label,
-      pricePerDay: product.quantities.find((q) => q.id === quantityId)?.pricePerDay || product.quantities[0].pricePerDay,
+      quantityId: selectedQty.id,
+      quantityLabel: selectedQty.label,
+      pricePerDay: selectedQty.pricePerDay,
       plan,
       customDays,
       deliveryCharges: product.deliveryCharges,
       deliveryWindow: "Daily Morning",
+      orderType,
+      subscriptionDays,
+      grandTotal,
+      oneTimeQuantity: orderType === "one-time" ? oneTimeQuantity : undefined,
     });
     router.push("/checkout");
-  }, [product, quantityId, plan, customDays, setProductSelection, router]);
+  }, [product, selectedQty, quantityId, plan, customDays, orderType, oneTimeQuantity, subscriptionDays, grandTotal, setProductSelection, router]);
 
   useEffect(() => {
     if (!product) return;
@@ -101,6 +122,11 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
     setQuantityId(defaultQty.id);
     setPlan("30");
     setCustomDays(30);
+    setOneTimeQuantity(1);
+    
+    // Reset order type based on product category when switching products
+    const isDailyProduct = ["milk", "curd", "buttermilk"].includes(product.category?.toLowerCase() || "");
+    setOrderType(isDailyProduct ? "subscription" : "one-time");
   }, [product, order.productSlug]);
 
   if (loading || !product) {
@@ -114,31 +140,24 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
     );
   }
 
-  const defaultQty = product.quantities[0];
-  const selectedQty = product.quantities.find((q) => q.id === quantityId) ?? defaultQty;
-  const subscriptionDays = getSubscriptionDays(plan, customDays);
-  const grandTotal = calculateGrandTotal(
-    selectedQty.pricePerDay,
-    subscriptionDays,
-    product.deliveryCharges
-  );
-
-  const isOutOfStock = product.stockStatus === "out_of_stock" || product.stock === 0;
+  const isOutOfStock = (product.stockStatus === "out_of_stock" || product.stock === 0);
 
   const liveOrder = {
     ...order,
     productSlug: product.slug,
     productName: product.name,
     productImage: product.image,
-    quantityId: selectedQty.id,
-    quantityLabel: selectedQty.label,
-    pricePerDay: selectedQty.pricePerDay,
+    quantityId: selectedQty?.id || "",
+    quantityLabel: selectedQty?.label || "",
+    pricePerDay: selectedQty?.pricePerDay || 0,
     plan,
     customDays,
     subscriptionDays,
-    deliveryCharges: product.deliveryCharges,
+    deliveryCharges: orderType === "subscription" ? product.deliveryCharges : 30,
     deliveryWindow: "Daily Morning",
-    grandTotal,
+    grandTotal: orderType === "subscription" ? grandTotal : ((selectedQty?.pricePerDay || 0) * oneTimeQuantity) + 30,
+    orderType,
+    oneTimeQuantity: orderType === "one-time" ? oneTimeQuantity : undefined,
   };
 
   return (
@@ -196,7 +215,7 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
 
                 <div className="flex flex-wrap gap-4 mb-2">
                   <MetaBadge
-                    icon={<CheckCircle className="w-4 h-4 text-[#25d366]" />}
+                    icon={product.availability === "Out of Stock" ? <XCircle className="w-4 h-4 text-red-600" /> : <CheckCircle className="w-4 h-4 text-[#25d366]" />}
                     label="Availability"
                     value={product.availability}
                   />
@@ -213,12 +232,35 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.5 }}
               >
+                {/* Order Type Toggle */}
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => setOrderType("subscription")}
+                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                      orderType === "subscription"
+                        ? "bg-[#10271C] text-white"
+                        : "bg-white text-[#666] border border-[#10271C]/20"
+                    }`}
+                  >
+                    Subscription
+                  </button>
+                  <button
+                    onClick={() => setOrderType("one-time")}
+                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                      orderType === "one-time"
+                        ? "bg-[#10271C] text-white"
+                        : "bg-white text-[#666] border border-[#10271C]/20"
+                    }`}
+                  >
+                    One-Time Order
+                  </button>
+                </div>
+
                 <ProductSelector
                   quantities={product.quantities}
                   selectedId={quantityId}
                   onSelect={(option) => {
                     setQuantityId(option.id);
-                    updateQuantity(option.id, option.label, option.pricePerDay);
                   }}
                 />
               </motion.div>
@@ -228,18 +270,38 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25, duration: 0.5 }}
               >
-                <SubscriptionSelector
-                  plan={plan}
-                  customDays={customDays}
-                  onPlanChange={(p) => {
-                    setPlan(p);
-                    updatePlan(p, customDays);
-                  }}
-                  onCustomDaysChange={(days) => {
-                    setCustomDays(days);
-                    updatePlan("custom", days);
-                  }}
-                />
+                {orderType === "subscription" ? (
+                  <SubscriptionSelector
+                    plan={plan}
+                    customDays={customDays}
+                    onPlanChange={(p) => {
+                      setPlan(p);
+                    }}
+                    onCustomDaysChange={(days) => {
+                      setCustomDays(days);
+                    }}
+                  />
+                ) : (
+                  /* One-Time Quantity Selector */
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-white border border-[#10271C]/10">
+                    <span className="text-sm font-medium text-[#666]">Quantity</span>
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => setOneTimeQuantity(Math.max(1, oneTimeQuantity - 1))}
+                        className="w-10 h-10 rounded-full bg-[#10271C]/5 flex items-center justify-center text-[#10271C] font-semibold hover:bg-[#10271C]/10 transition-colors"
+                      >
+                        -
+                      </button>
+                      <span className="text-xl font-semibold text-[#10271C] w-8 text-center">{oneTimeQuantity}</span>
+                      <button
+                        onClick={() => setOneTimeQuantity(oneTimeQuantity + 1)}
+                        className="w-10 h-10 rounded-full bg-[#10271C]/5 flex items-center justify-center text-[#10271C] font-semibold hover:bg-[#10271C]/10 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
               </motion.div>
 
               {/* Price Calculator */}
@@ -253,22 +315,49 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
                 <p className="text-sm font-medium text-[#666] mb-3">
                   Price Calculator
                 </p>
-                <div className="flex flex-wrap items-center justify-center gap-2 text-lg font-semibold text-[#10271C]">
-                  <AnimatedPrice value={selectedQty.pricePerDay} />
-                  <span className="text-[#666] font-normal">×</span>
-                  <motion.span
-                    key={subscriptionDays}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                  >
-                    {subscriptionDays} Days
-                  </motion.span>
-                  <span className="text-[#666] font-normal">=</span>
-                  <AnimatedPrice
-                    value={grandTotal}
-                    className="font-serif text-2xl text-[#10271C]"
-                  />
-                </div>
+                {orderType === "subscription" ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2 text-lg font-semibold text-[#10271C]">
+                    <AnimatedPrice value={selectedQty?.pricePerDay || 0} />
+                    <span className="text-[#666] font-normal">×</span>
+                    <motion.span
+                      key={subscriptionDays}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                    >
+                      {subscriptionDays} Days
+                    </motion.span>
+                    <span className="text-[#666] font-normal">=</span>
+                    <AnimatedPrice
+                      value={grandTotal}
+                      className="font-serif text-2xl text-[#10271C]"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#666]">Price per unit</span>
+                      <span className="font-semibold text-[#10271C]">₹{selectedQty?.pricePerDay || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#666]">Quantity</span>
+                      <span className="font-semibold text-[#10271C]">{oneTimeQuantity}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#666]">Subtotal</span>
+                      <span className="font-semibold text-[#10271C]">₹{((selectedQty?.pricePerDay || 0) * oneTimeQuantity).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#666]">Delivery Charge</span>
+                      <span className="font-semibold text-[#10271C]">₹30</span>
+                    </div>
+                    <div className="border-t border-[#10271C]/10 pt-2 mt-2">
+                      <div className="flex justify-between text-lg">
+                        <span className="font-semibold text-[#10271C]">Grand Total</span>
+                        <span className="font-serif font-bold text-[#10271C]">₹{(((selectedQty?.pricePerDay || 0) * oneTimeQuantity) + 30).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </motion.div>
 
               {/* Summary - desktop inline, mobile above sticky button area */}
@@ -293,7 +382,7 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  Subscribe
+                  {orderType === "subscription" ? "Subscribe" : "Order Now"}
                   <span>→</span>
                 </motion.button>
               )}
@@ -323,7 +412,7 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
             />
           </div>
           <p className="text-xs text-[#666] text-right">
-            {selectedQty.label} · {subscriptionDays} days
+            {selectedQty?.label || ""} · {subscriptionDays} days
           </p>
         </div>
         {isOutOfStock ? (
@@ -342,7 +431,7 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
             style={{ background: "#10271C" }}
             whileTap={{ scale: 0.98 }}
           >
-            Subscribe
+            {orderType === "subscription" ? "Subscribe" : "Order Now"}
           </motion.button>
         )}
       </motion.div>

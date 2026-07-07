@@ -9,7 +9,10 @@ export interface IOrder extends Document {
   productName: string;
   quantity: string;
   subscription?: string;
+  orderType: "subscription" | "one-time";
   amount: number;
+  deliveryCharge: number;
+  subtotal: number;
   status: "Pending" | "Confirmed" | "Preparing" | "Out for Delivery" | "Delivered" | "Cancelled";
   createdAt: Date;
   updatedAt: Date;
@@ -51,9 +54,23 @@ const OrderSchema = new Schema<IOrder>(
       type: String,
       default: "None",
     },
+    orderType: {
+      type: String,
+      enum: ["subscription", "one-time"],
+      default: "subscription",
+      required: [true, "Order type is required"],
+    },
     amount: {
       type: Number,
       required: [true, "Order amount is required"],
+    },
+    deliveryCharge: {
+      type: Number,
+      default: 0,
+    },
+    subtotal: {
+      type: Number,
+      required: [true, "Subtotal is required"],
     },
     status: {
       type: String,

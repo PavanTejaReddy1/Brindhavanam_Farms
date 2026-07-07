@@ -5,18 +5,14 @@ import AdminLayout from "./AdminLayout";
 import AdminProtectedRoute from "./AdminProtectedRoute";
 import { fetchWithAdminAuth } from "@/lib/api";
 import { Package, History, Plus, Minus } from "lucide-react";
+import { usePolling } from "@/lib/hooks/usePolling";
 
 export default function AdminInventoryClient() {
   const [inventory, setInventory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchInventory();
-  }, []);
-
   const fetchInventory = async () => {
     try {
-      setLoading(true);
       const data = await fetchWithAdminAuth("/api/inventory");
       setInventory(data.inventory || []);
     } catch (error) {
@@ -26,15 +22,23 @@ export default function AdminInventoryClient() {
     }
   };
 
-  const updateStock = async (inventoryId: string, change: number) => {
+  useEffect(() => {
+    fetchInventory();
+  }, []);
+
+  // Use polling to auto-refresh inventory every 30 seconds
+  usePolling(fetchInventory, { interval: 30000, immediate: false });
+
+  const updateStock = async (productId: string, change: number) => {
     try {
-      const item = inventory.find((i) => i._id === inventoryId);
+      const item = inventory.find((i) => i.productId === productId);
       if (item) {
         const newStock = Math.max(0, item.stock + change);
-        await fetchWithAdminAuth(`/api/inventory/${inventoryId}`, {
+        await fetchWithAdminAuth(`/api/inventory/${productId}`, {
           method: "PUT",
           body: JSON.stringify({ stock: newStock }),
         });
+        // Refresh inventory immediately after update
         fetchInventory();
       }
     } catch (error) {
@@ -75,7 +79,7 @@ export default function AdminInventoryClient() {
             {inventory.length > 0 ? inventory.map((item) => {
               const status = getStockStatus(item.stock);
               return (
-                <div key={item._id} className="rounded-[20px] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,.06)]">
+                <div key={item.productId} className="rounded-[20px] bg-white p-6 shadow-[0_8px_30px_rgba(0,0,0,.06)]">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl bg-[#10271C]/5 flex items-center justify-center">
@@ -83,7 +87,7 @@ export default function AdminInventoryClient() {
                       </div>
                       <div>
                         <p className="font-medium text-[#10271C]">{item.productName}</p>
-                        <p className="text-xs text-[#666]">{item.unit}</p>
+                        <p className="text-xs text-[#666]">{item.category || "N/A"}</p>
                       </div>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-full ${status.color}`}>
@@ -94,13 +98,13 @@ export default function AdminInventoryClient() {
                     <p className="text-3xl font-bold text-[#10271C]">{item.stock}</p>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => updateStock(item._id, -10)}
+                        onClick={() => updateStock(item.productId, -10)}
                         className="p-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors"
                       >
                         <Minus className="w-4 h-4 text-red-600" />
                       </button>
                       <button
-                        onClick={() => updateStock(item._id, 10)}
+                        onClick={() => updateStock(item.productId, 10)}
                         className="p-2 rounded-lg bg-green-50 hover:bg-green-100 transition-colors"
                       >
                         <Plus className="w-4 h-4 text-green-600" />

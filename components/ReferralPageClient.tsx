@@ -47,6 +47,7 @@ export default function ReferralPageClient() {
       setReferralData(data);
     } catch (error) {
       console.error("Error fetching referral data:", error);
+      setReferralData(null);
     } finally {
       setLoading(false);
     }

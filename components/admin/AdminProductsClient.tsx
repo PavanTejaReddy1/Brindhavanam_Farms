@@ -5,6 +5,7 @@ import AdminLayout from "./AdminLayout";
 import AdminProtectedRoute from "./AdminProtectedRoute";
 import { fetchWithAdminAuth } from "@/lib/api";
 import { Plus, Edit, Trash2, ToggleLeft, ToggleRight, Search, X } from "lucide-react";
+import { usePolling } from "@/lib/hooks/usePolling";
 
 interface Product {
   _id: string;
@@ -41,6 +42,7 @@ export default function AdminProductsClient() {
     active: true,
     variants: [{ id: "", label: "", pricePerDay: 0 }],
   });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -57,6 +59,9 @@ export default function AdminProductsClient() {
       setLoading(false);
     }
   };
+
+  // Use polling to auto-refresh products every 30 seconds
+  usePolling(fetchProducts, { interval: 30000, immediate: false });
 
   const handleToggle = async (productId: string, currentActive: boolean) => {
     try {
@@ -119,6 +124,33 @@ export default function AdminProductsClient() {
 
   const handleSave = async () => {
     try {
+      // Validate required fields
+      if (!formData.name || formData.name.length < 2) {
+        alert("Product name must be at least 2 characters");
+        return;
+      }
+      if (!formData.slug || formData.slug.length < 2) {
+        alert("Product slug is required");
+        return;
+      }
+      if (!formData.description || formData.description.length < 10) {
+        alert("Description must be at least 10 characters");
+        return;
+      }
+      if (!formData.shortDescription || formData.shortDescription.length < 5) {
+        alert("Short description must be at least 5 characters");
+        return;
+      }
+      if (!formData.variants || formData.variants.length === 0) {
+        alert("At least one variant is required");
+        return;
+      }
+      const invalidVariant = formData.variants.find(v => !v.id || !v.label || v.pricePerDay === undefined);
+      if (invalidVariant) {
+        alert("All variants must have ID, label, and price per day");
+        return;
+      }
+
       if (editingProduct) {
         await fetchWithAdminAuth(`/api/products/${editingProduct._id}`, {
           method: "PUT",
@@ -132,9 +164,47 @@ export default function AdminProductsClient() {
       }
       setShowAddModal(false);
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving product:", error);
-      alert("Failed to save product");
+      alert(error.message || "Failed to save product");
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+
+      const adminToken = localStorage.getItem("adminToken");
+      if (!adminToken) {
+        alert("Admin not authenticated");
+        return;
+      }
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+          // Don't set Content-Type for FormData - browser will set it with boundary
+        },
+        body: uploadFormData,
+      });
+
+      const data = await response.json();
+      if (data.url) {
+        setFormData({ ...formData, image: data.url });
+      } else {
+        alert(data.error || "Failed to upload image");
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Failed to upload image");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -347,13 +417,32 @@ export default function AdminProductsClient() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#10271C] mb-1">Image URL</label>
-                  <input
-                    type="text"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[#10271C]/10 focus:outline-none focus:border-[#D4AF37]"
-                  />
+                  <label className="block text-sm font-medium text-[#10271C] mb-1">Product Image</label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                      className="w-full px-3 py-2 rounded-lg border border-[#10271C]/10 focus:outline-none focus:border-[#D4AF37]"
+                    />
+                    {uploading && <p className="text-sm text-[#666]">Uploading...</p>}
+                    {formData.image && (
+                      <div className="relative">
+                        <img
+                          src={formData.image}
+                          alt="Product preview"
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <button
+                          onClick={() => setFormData({ ...formData, image: "" })}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
