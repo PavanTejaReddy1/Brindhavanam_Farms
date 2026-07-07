@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const isAdmin = user.role === "admin";
 
-    let query = isAdmin ? {} : { userId: user.userId };
+    let query: any = isAdmin ? {} : { userId: user.userId };
     const status = searchParams.get("status");
     if (status) {
       query = { ...query, status };
