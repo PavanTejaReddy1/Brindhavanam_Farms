@@ -4,6 +4,8 @@ import Order from "@/models/Order";
 import { getUserFromToken, requireAuth } from "@/lib/auth";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const orderSchema = z.object({
   productId: z.string(),
   productName: z.string(),

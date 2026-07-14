@@ -4,6 +4,8 @@ import Product from "@/models/Product";
 import { getUserFromToken, requireAuth } from "@/lib/auth";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const productSchema = z.object({
   name: z.string().min(2, "Product name must be at least 2 characters"),
   slug: z.string().min(2, "Product slug is required"),

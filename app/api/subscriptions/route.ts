@@ -4,6 +4,8 @@ import Subscription from "@/models/Subscription";
 import { getUserFromToken, requireAuth } from "@/lib/auth";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const subscriptionSchema = z.object({
   productId: z.string(),
   productName: z.string(),

@@ -4,6 +4,8 @@ import Order from "@/models/Order";
 import { requireAuth } from "@/lib/auth";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const updateOrderSchema = z.object({
   status: z.enum(["Pending", "Confirmed", "Preparing", "Out for Delivery", "Delivered", "Cancelled"]).optional(),
 });

@@ -3,6 +3,8 @@ import { writeFile } from "fs/promises";
 import path from "path";
 import { requireAuth } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const authCheck = await requireAuth("admin")(req);

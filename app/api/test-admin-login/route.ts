@@ -4,6 +4,8 @@ import Admin from "@/models/Admin";
 import { comparePassword } from "@/lib/password";
 import { hashPassword } from "@/lib/password";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

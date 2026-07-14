@@ -3,6 +3,8 @@ import connectDB from "@/lib/mongodb";
 import Payment from "@/models/Payment";
 import { getUserFromToken, requireAuth } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const user = getUserFromToken(req);

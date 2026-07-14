@@ -4,6 +4,8 @@ import Subscription from "@/models/Subscription";
 import { requireAuth } from "@/lib/auth";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const updateSubscriptionSchema = z.object({
   status: z.enum(["Active", "Paused", "Cancelled", "Expired"]).optional(),
   nextDelivery: z.string().optional(),

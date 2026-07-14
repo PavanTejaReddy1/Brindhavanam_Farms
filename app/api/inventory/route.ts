@@ -3,6 +3,8 @@ import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
 import { requireAuth } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     await connectDB();

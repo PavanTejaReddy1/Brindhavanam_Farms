@@ -3,6 +3,8 @@ import connectDB from "@/lib/mongodb";
 import Referral from "@/models/Referral";
 import { requireAuth } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 const updateReferralSchema = {
   status: ["Pending", "Successful", "Rejected"],
   reward: "number",

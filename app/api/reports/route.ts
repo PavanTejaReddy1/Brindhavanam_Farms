@@ -7,6 +7,8 @@ import Referral from "@/models/Referral";
 import Payment from "@/models/Payment";
 import { requireAuth } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const authCheck = await requireAuth("admin")(req);

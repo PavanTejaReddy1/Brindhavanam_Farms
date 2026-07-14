@@ -5,6 +5,8 @@ import { comparePassword } from "@/lib/password";
 import { signToken } from "@/lib/jwt";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const adminLoginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),

@@ -3,6 +3,8 @@ import connectDB from "@/lib/mongodb";
 import Delivery from "@/models/Delivery";
 import { requireAuth } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const authCheck = await requireAuth("admin")(req);

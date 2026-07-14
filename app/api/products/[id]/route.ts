@@ -4,6 +4,8 @@ import Product from "@/models/Product";
 import { requireAuth } from "@/lib/auth";
 import { z } from "zod";
 
+export const dynamic = 'force-dynamic';
+
 const updateProductSchema = z.object({
   name: z.string().min(2).optional(),
   slug: z.string().min(2).optional(),

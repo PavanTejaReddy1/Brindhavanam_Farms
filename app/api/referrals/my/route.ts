@@ -4,6 +4,8 @@ import Referral from "@/models/Referral";
 import User from "@/models/User";
 import { getUserFromToken } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const user = getUserFromToken(req);
