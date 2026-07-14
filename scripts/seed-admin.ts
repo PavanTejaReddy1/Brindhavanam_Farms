@@ -33,7 +33,6 @@ async function seedAdmin() {
       email: adminEmail,
       password: hashedPassword,
       role: "admin",
-      avatar: null,
     });
     
     console.log("Admin created successfully:", adminEmail);
