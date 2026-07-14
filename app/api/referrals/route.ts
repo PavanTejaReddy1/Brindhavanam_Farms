@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const isAdmin = user.role === "admin";
 
-    let query = isAdmin ? {} : { $or: [{ referrerId: user.userId }, { refereeId: user.userId }] };
+    let query: any = isAdmin ? {} : { $or: [{ referrerId: user.userId }, { refereeId: user.userId }] };
     const status = searchParams.get("status");
     if (status) {
       query = { ...query, status };

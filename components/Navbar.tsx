@@ -61,8 +61,6 @@ export default function Navbar() {
     }
   };
 
-
-
   return (
 
     <motion.header
@@ -203,9 +201,7 @@ export default function Navbar() {
 
             <a
 
-              href={WHATSAPP_URL}
-
-              target="_blank"
+              href="#products"
 
               rel="noopener noreferrer"
 

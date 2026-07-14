@@ -18,6 +18,7 @@ import {
 } from "@/lib/products";
 import type { ProductDetail, SubscriptionPlanType } from "@/types/order";
 import { usePolling } from "@/lib/hooks/usePolling";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductPageClientProps {
   productSlug: string;
@@ -33,6 +34,8 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
   const [customDays, setCustomDays] = useState(30);
   const [orderType, setOrderType] = useState<"subscription" | "one-time">("subscription");
   const [oneTimeQuantity, setOneTimeQuantity] = useState(1);
+
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     fetchProduct();
@@ -69,14 +72,14 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
   // Initialize state when product loads
   useEffect(() => {
     if (!product) return;
-    
+
     const defaultQty = product.quantities[0];
     const shouldUseOrderState = order.productSlug === product.slug;
-    
+
     setQuantityId(shouldUseOrderState ? order.quantityId : defaultQty.id);
     setPlan(shouldUseOrderState ? order.plan : "30");
     setCustomDays(shouldUseOrderState ? order.customDays : 30);
-    
+
     // Only set order type if not already set in order state
     if (!order.orderType) {
       const isDailyProduct = ["milk", "curd", "buttermilk"].includes(product.category?.toLowerCase() || "");
@@ -92,9 +95,16 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
     product?.deliveryCharges || 0
   );
 
-  const handleSubscribe = useCallback(() => {
+  const handleSubscribe = useCallback((e: React.MouseEvent) => {
+      if (!isAuthenticated) {
+        e.preventDefault();
+        router.push("/login?redirect=/#products");
+
+        return;
+      }
+
     if (!product || !selectedQty) return;
-    
+
     setProductSelection({
       productSlug: product.slug,
       productName: product.name,
@@ -117,13 +127,13 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
   useEffect(() => {
     if (!product) return;
     if (order.productSlug === product.slug) return;
-    
+
     const defaultQty = product.quantities[0];
     setQuantityId(defaultQty.id);
     setPlan("30");
     setCustomDays(30);
     setOneTimeQuantity(1);
-    
+
     // Reset order type based on product category when switching products
     const isDailyProduct = ["milk", "curd", "buttermilk"].includes(product.category?.toLowerCase() || "");
     setOrderType(isDailyProduct ? "subscription" : "one-time");
@@ -236,21 +246,19 @@ export default function ProductPageClient({ productSlug }: ProductPageClientProp
                 <div className="flex gap-2 mb-4">
                   <button
                     onClick={() => setOrderType("subscription")}
-                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
-                      orderType === "subscription"
+                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${orderType === "subscription"
                         ? "bg-[#10271C] text-white"
                         : "bg-white text-[#666] border border-[#10271C]/20"
-                    }`}
+                      }`}
                   >
                     Subscription
                   </button>
                   <button
                     onClick={() => setOrderType("one-time")}
-                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
-                      orderType === "one-time"
+                    className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${orderType === "one-time"
                         ? "bg-[#10271C] text-white"
                         : "bg-white text-[#666] border border-[#10271C]/20"
-                    }`}
+                      }`}
                   >
                     One-Time Order
                   </button>

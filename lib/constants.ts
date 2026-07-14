@@ -2,7 +2,6 @@ export const WHATSAPP_NUMBER = "91XXXXXXXXXX";
 export const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 export const NAV_LINKS = [
-  { label: "About", href: "#about" },
   { label: "Products", href: "#products" },
   { label: "How It Works", href: "#how" },
   { label: "Referral", href: "/referral" },
