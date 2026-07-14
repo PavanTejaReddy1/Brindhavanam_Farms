@@ -24,11 +24,10 @@ export default function AdminLoginPageClient() {
     setError("");
     setLoading(true);
 
-    const success = await login(email, password);
-    
-    if (success) {
+    try {
+      await login(email, password);
       router.push("/admin/dashboard");
-    } else {
+    } catch (err) {
       setError("Invalid Admin Credentials");
     }
     
