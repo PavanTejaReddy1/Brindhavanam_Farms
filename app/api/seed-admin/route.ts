@@ -3,6 +3,8 @@ import connectDB from "@/lib/mongodb";
 import Admin from "@/models/Admin";
 import { hashPassword } from "@/lib/password";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST() {
   try {
     await connectDB();
