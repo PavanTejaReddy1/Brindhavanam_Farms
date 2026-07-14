@@ -3,6 +3,7 @@ import connectDB from "@/lib/mongodb";
 import Product from "@/models/Product";
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST() {
   try {
