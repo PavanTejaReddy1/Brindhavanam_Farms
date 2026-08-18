@@ -30,6 +30,11 @@ export default function SignupPageClient() {
     e.preventDefault();
     setError("");
 
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -45,8 +50,9 @@ export default function SignupPageClient() {
     try {
       await signup(formData);
       router.push("/profile");
-    } catch (err) {
-      setError("Failed to create account");
+    } catch (err: any) {
+      // Show the exact message from the API (e.g. "User with this email already exists")
+      setError(err?.message || "Failed to create account");
     } finally {
       setLoading(false);
     }
