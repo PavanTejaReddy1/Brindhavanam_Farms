@@ -6,9 +6,6 @@ export interface IUser extends Document {
   phone: string;
   password: string;
   address: string;
-  referralCode: string;
-  referredBy?: string;
-  referralEarnings: number;
   totalOrders: number;
   lifetimeValue: number;
   createdAt: Date;
@@ -42,19 +39,6 @@ const UserSchema = new Schema<IUser>(
     address: {
       type: String,
       required: [true, "Address is required"],
-    },
-    referralCode: {
-      type: String,
-      required: [true, "Referral code is required"],
-      unique: true,
-    },
-    referredBy: {
-      type: String,
-      default: null,
-    },
-    referralEarnings: {
-      type: Number,
-      default: 0,
     },
     totalOrders: {
       type: Number,

@@ -17,7 +17,6 @@ export default function SignupPageClient() {
     password: "",
     confirmPassword: "",
     address: "",
-    referralCode: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -164,20 +163,6 @@ export default function SignupPageClient() {
                   placeholder="••••••••"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#10271C] mb-2">
-                Referral Code (Optional)
-              </label>
-              <input
-                type="text"
-                name="referralCode"
-                value={formData.referralCode}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-[#10271C]/10 focus:outline-none focus:border-[#D4AF37] transition-colors"
-                placeholder="FRIEND123"
-              />
             </div>
 
             <div className="flex items-start gap-3">

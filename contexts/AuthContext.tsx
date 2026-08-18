@@ -8,8 +8,6 @@ interface User {
   email: string;
   phone: string;
   address: string;
-  referralCode: string;
-  referralEarnings: number;
   totalOrders: number;
   lifetimeValue: number;
 }
@@ -30,7 +28,6 @@ interface SignupData {
   email: string;
   password: string;
   address: string;
-  referralCode?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,7 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for existing session on mount
     const storedUser = localStorage.getItem("user");
     const storedToken = localStorage.getItem("token");
     if (storedUser && storedToken) {
@@ -66,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const data = await response.json();
-    
     setUser(data.user);
     setToken(data.token);
     setIsAuthenticated(true);
@@ -87,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const result = await response.json();
-    
     setUser(result.user);
     setToken(result.token);
     setIsAuthenticated(true);
@@ -108,9 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const response = await fetch("/api/users/profile", {
       method: "PUT",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -121,13 +115,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const result = await response.json();
-    
     setUser(result.user);
     localStorage.setItem("user", JSON.stringify(result.user));
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, signup, logout, updateProfile }}>
+    <AuthContext.Provider
+      value={{ user, isAuthenticated, isLoading, login, signup, logout, updateProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );

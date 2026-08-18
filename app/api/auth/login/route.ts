@@ -5,7 +5,7 @@ import { comparePassword } from "@/lib/password";
 import { signToken } from "@/lib/jwt";
 import { z } from "zod";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -15,13 +15,10 @@ const loginSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    
-    // Validate input
     const validatedData = loginSchema.parse(body);
 
     await connectDB();
 
-    // Find user
     const user = await User.findOne({ email: validatedData.email });
     if (!user) {
       return NextResponse.json(
@@ -30,7 +27,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify password
     const isPasswordValid = await comparePassword(validatedData.password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -39,7 +35,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate token
     const token = signToken({
       userId: user._id.toString(),
       email: user.email,
@@ -56,8 +51,6 @@ export async function POST(req: NextRequest) {
           email: user.email,
           phone: user.phone,
           address: user.address,
-          referralCode: user.referralCode,
-          referralEarnings: user.referralEarnings,
           totalOrders: user.totalOrders,
           lifetimeValue: user.lifetimeValue,
         },
@@ -71,7 +64,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
     console.error("Login error:", error);
     return NextResponse.json(
       { error: "Internal server error" },

@@ -5,7 +5,6 @@ import Hero from "../components/Hero";
 import Features from "../components/Features";
 import Products from "../components/Products";
 import HowItWorks from "../components/HowItWorks";
-import Referral from "../components/Referral";
 import Compare from "../components/Compare";
 import Testimonials from "../components/Testimonials";
 import FAQ from "../components/FAQ";
@@ -24,7 +23,6 @@ export default function Home() {
         <Features />
         <Products />
         <HowItWorks />
-        <Referral />
         <Compare />
         <Testimonials />
         <FAQ />
