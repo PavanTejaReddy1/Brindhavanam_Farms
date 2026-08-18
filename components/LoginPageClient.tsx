@@ -58,11 +58,15 @@ export default function LoginPageClient() {
         body: JSON.stringify({ email: fpEmail, type: "user" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to send OTP");
+      if (!res.ok) {
+        // Show the exact error (e.g. "No account found with this email address.")
+        setFpError(data.error || "Failed to send OTP");
+        return;
+      }
       setFpMessage(data.message);
       setStep("forgot-otp");
     } catch (err: any) {
-      setFpError(err.message);
+      setFpError("Something went wrong. Please try again.");
     } finally {
       setFpLoading(false);
     }

@@ -20,15 +20,14 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    // Verify the account exists
+    // Verify the account exists — return a clear error if not found
     let accountName: string | undefined;
     if (type === "admin") {
       const admin = await Admin.findOne({ email });
       if (!admin) {
-        // Return 200 anyway to prevent email enumeration
         return NextResponse.json(
-          { message: "If this email is registered, an OTP has been sent." },
-          { status: 200 }
+          { error: "No admin account found with this email address." },
+          { status: 404 }
         );
       }
       accountName = admin.name;
@@ -36,8 +35,8 @@ export async function POST(req: NextRequest) {
       const user = await User.findOne({ email });
       if (!user) {
         return NextResponse.json(
-          { message: "If this email is registered, an OTP has been sent." },
-          { status: 200 }
+          { error: "No account found with this email address." },
+          { status: 404 }
         );
       }
       accountName = user.name;
@@ -59,7 +58,7 @@ export async function POST(req: NextRequest) {
     await sendOTPEmail(email, otp, accountName);
 
     return NextResponse.json(
-      { message: "If this email is registered, an OTP has been sent." },
+      { message: "OTP sent successfully." },
       { status: 200 }
     );
   } catch (error) {

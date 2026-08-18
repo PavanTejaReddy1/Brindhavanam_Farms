@@ -58,10 +58,14 @@ export default function AdminLoginPageClient() {
         body: JSON.stringify({ email: fpEmail, type: "admin" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to send OTP");
+      if (!res.ok) {
+        // Show the exact error (e.g. "No admin account found with this email address.")
+        setFpError(data.error || "Failed to send OTP");
+        return;
+      }
       setStep("forgot-otp");
     } catch (err: any) {
-      setFpError(err.message);
+      setFpError("Something went wrong. Please try again.");
     } finally {
       setFpLoading(false);
     }
