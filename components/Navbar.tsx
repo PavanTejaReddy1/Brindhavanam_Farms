@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 
-import { NAV_LINKS, WHATSAPP_URL } from "../lib/constants";
+import { NAV_LINKS, WHATSAPP_URL, WA_MESSAGES } from "../lib/constants";
 
 import { useNavbarTheme } from "../lib/useNavbarTheme";
 
@@ -351,7 +351,7 @@ export default function Navbar() {
 
                 <a
 
-                  href={WHATSAPP_URL}
+                  href={WA_MESSAGES.navbar}
 
                   target="_blank"
 

@@ -1,11 +1,10 @@
-import { WHATSAPP_URL } from "@/lib/constants";
+import { WA_MESSAGES } from "@/lib/constants";
 
 const QUICK_LINKS = [
     { label: "Home", href: "#home" },
     { label: "About Us", href: "#about" },
     { label: "Products", href: "#products" },
     { label: "How It Works", href: "#how" },
-    { label: "Referral Program", href: "#referral" },
 ];
 
 const PRODUCT_LINKS = [
@@ -27,7 +26,7 @@ const LEGAL_LINKS = [
 const SOCIALS = [
     { icon: "📸", label: "Instagram", href: "#" },
     { icon: "📘", label: "Facebook", href: "#" },
-    { icon: "💬", label: "WhatsApp", href: WHATSAPP_URL },
+    { icon: "💬", label: "WhatsApp", href: WA_MESSAGES.footer },
     { icon: "▶️", label: "YouTube", href: "#" },
 ];
 

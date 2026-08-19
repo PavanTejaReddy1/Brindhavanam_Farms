@@ -1,6 +1,35 @@
 export const WHATSAPP_NUMBER = "919182336049";
 export const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}`;
 
+/** Build a wa.me URL with a pre-filled message */
+export function buildSimpleWhatsAppUrl(message: string): string {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+/** Pre-filled messages for each entry point */
+export const WA_MESSAGES = {
+  /** Hero "Order on WhatsApp" button */
+  hero: buildSimpleWhatsAppUrl(
+    "Hello Brindhavanam Farms! 🌿\n\nI'd like to place an order for fresh milk. Could you please share the available products and subscription plans?\n\nThank you!"
+  ),
+  /** Floating WhatsApp button (bottom-right) */
+  float: buildSimpleWhatsAppUrl(
+    "Hello Brindhavanam Farms! 👋\n\nI have a query and would like to chat with your team."
+  ),
+  /** Navbar "Order Now" CTA */
+  navbar: buildSimpleWhatsAppUrl(
+    "Hello Brindhavanam Farms! 🥛\n\nI'd like to subscribe to daily fresh milk delivery. Please let me know the available plans and delivery areas."
+  ),
+  /** Contact section "Chat on WhatsApp" button */
+  contact: buildSimpleWhatsAppUrl(
+    "Hello Brindhavanam Farms! 📩\n\nI found you through your website and have a question. Could someone assist me?"
+  ),
+  /** Footer WhatsApp social link */
+  footer: buildSimpleWhatsAppUrl(
+    "Hello Brindhavanam Farms! 👋\n\nI'd like to know more about your fresh milk delivery service."
+  ),
+};
+
 export const NAV_LINKS = [
   { label: "Products", href: "#products" },
   { label: "How It Works", href: "#how" },

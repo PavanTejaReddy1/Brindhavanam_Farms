@@ -1,12 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { WHATSAPP_URL } from "../lib/constants";
+import { WA_MESSAGES } from "../lib/constants";
 
 export default function WhatsAppFloat() {
   return (
     <motion.a
-      href={WHATSAPP_URL}
+      href={WA_MESSAGES.float}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat on WhatsApp"

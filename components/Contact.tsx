@@ -1,8 +1,8 @@
 import SectionHeader from "../components/SectionHeader";
-import { WHATSAPP_URL } from "../lib/constants";
+import { WA_MESSAGES } from "../lib/constants";
 
 const CONTACT_ITEMS = [
-  { icon: "💬", label: "WhatsApp", value: "+91 98765 43210", href: WHATSAPP_URL },
+  { icon: "💬", label: "WhatsApp", value: "+91 91823 36049", href: WA_MESSAGES.contact },
   { icon: "📧", label: "Email", value: "hello@brindhavanamfarms.com", href: "mailto:hello@brindhavanamfarms.com" },
   { icon: "📍", label: "Farm Address", value: "Medchal Road, Hyderabad – 500078", href: "#" },
   { icon: "🕐", label: "Delivery Hours", value: "5:00 AM – 7:00 AM, 7 days a week", href: "#" },
@@ -50,7 +50,7 @@ export default function Contact() {
             ))}
           </div>
           <a
-            href={WHATSAPP_URL}
+            href={WA_MESSAGES.contact}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold text-sm text-white transition-all hover:-translate-y-0.5"

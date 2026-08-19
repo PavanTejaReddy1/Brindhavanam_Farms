@@ -2,7 +2,7 @@
 
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { WHATSAPP_URL } from "../lib/constants";
+import { WHATSAPP_URL, WA_MESSAGES } from "../lib/constants";
 
 export default function Hero() {
   const ref = useRef<HTMLElement>(null);
@@ -93,7 +93,7 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.4 }}
         >
           <a
-            href={WHATSAPP_URL}
+            href={WA_MESSAGES.hero}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 hover:-translate-y-0.5"
