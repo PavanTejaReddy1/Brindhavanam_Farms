@@ -111,15 +111,20 @@ export default function CheckoutForm() {
       setLoading(false);
       setSuccess(true);
 
-      // Open WhatsApp after the overlay appears
-      setTimeout(() => {
-        window.open(buildWhatsAppUrl(order), "_blank");
-      }, 1000);
+      // Open WhatsApp immediately — no setTimeout so browser doesn't treat it as a popup.
+      // Use location.href on mobile (direct navigation) and window.open on desktop.
+      const waUrl = buildWhatsAppUrl(order);
+      const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = waUrl;
+      } else {
+        window.open(waUrl, "_blank", "noopener,noreferrer");
+      }
 
       // Reset order context after a delay so the user can note the order ID
       setTimeout(() => {
         resetOrder();
-      }, 8000);
+      }, 10000);
     } catch (err: any) {
       setLoading(false);
       setSubmitError(err.message || "Something went wrong. Please try again.");
@@ -387,9 +392,20 @@ export default function CheckoutForm() {
                 </div>
               )}
 
-              <p className="text-xs text-[#aaa]">
+              <p className="text-xs text-[#aaa] mb-4">
                 You can track this order in My Orders on your profile.
               </p>
+
+              {/* Fallback button in case browser blocked auto-open */}
+              <a
+                href={buildWhatsAppUrl(order)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-full font-semibold text-sm text-white"
+                style={{ background: "#25d366" }}
+              >
+                💬 Open WhatsApp
+              </a>
             </motion.div>
           </motion.div>
         )}
