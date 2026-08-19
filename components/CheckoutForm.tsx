@@ -7,24 +7,26 @@ import { useOrder } from "@/context/OrderContext";
 import { getMinStartDate, getMaxStartDate } from "@/lib/products";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import OrderSummary from "./OrderSummary";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, Copy, Check } from "lucide-react";
 
 interface FormErrors {
   [key: string]: string;
 }
 
 export default function CheckoutForm() {
-  const { order, updateCustomer } = useOrder();
+  const { order, updateCustomer, resetOrder } = useOrder();
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [savedOrderId, setSavedOrderId] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const minDate = getMinStartDate();
   const maxDate = getMaxStartDate();
 
   function validate(): FormErrors {
     const next: FormErrors = {};
-
     if (!order.fullName.trim()) next.fullName = "Full name is required";
     if (!order.phone.trim()) {
       next.phone = "Phone number is required";
@@ -41,8 +43,6 @@ export default function CheckoutForm() {
     } else if (!/^\d{6}$/.test(order.pincode)) {
       next.pincode = "Pincode must be 6 digits";
     }
-    
-    // Only validate start date for subscription orders
     if (order.orderType === "subscription" || !order.orderType) {
       if (!order.startDate) {
         next.startDate = "Start date is required";
@@ -50,29 +50,80 @@ export default function CheckoutForm() {
         next.startDate = "Please select a date between tomorrow and 90 days from now";
       }
     }
-
     return next;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitError("");
     const validationErrors = validate();
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      // Build full address string
+      const address = [
+        order.houseNumber,
+        order.street,
+        order.area,
+        order.landmark,
+        order.city,
+        order.district,
+        order.pincode,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      // Save order to database
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          customerName: order.fullName,
+          customerPhone: order.phone,
+          customerEmail: order.email || "",
+          customerAddress: address,
+          productName: order.productName,
+          quantity: order.quantityLabel,
+          plan: order.plan,
+          startDate: order.startDate,
+          orderType: order.orderType || "subscription",
+          amount: order.grandTotal,
+          deliveryCharge: order.deliveryCharges ?? 0,
+          subtotal: order.grandTotal - (order.deliveryCharges ?? 0),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save order");
+      }
+
+      const orderId: string = data.orderId || data.order?.orderId || "";
+      setSavedOrderId(orderId);
       setLoading(false);
       setSuccess(true);
-      // Open WhatsApp then reset so the overlay doesn't persist when the user returns
+
+      // Open WhatsApp after the overlay appears
       setTimeout(() => {
         window.open(buildWhatsAppUrl(order), "_blank");
-        // Give WhatsApp a moment to open, then clear the success state
-        setTimeout(() => {
-          setSuccess(false);
-        }, 2000);
-      }, 1200);
-    }, 800);
+      }, 1000);
+
+      // Reset order context after a delay so the user can note the order ID
+      setTimeout(() => {
+        resetOrder();
+      }, 8000);
+    } catch (err: any) {
+      setLoading(false);
+      setSubmitError(err.message || "Something went wrong. Please try again.");
+    }
   }
 
   function handleChange(field: keyof typeof order, value: string) {
@@ -86,6 +137,14 @@ export default function CheckoutForm() {
     }
   }
 
+  function handleCopyOrderId() {
+    if (!savedOrderId) return;
+    navigator.clipboard.writeText(savedOrderId).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -94,12 +153,7 @@ export default function CheckoutForm() {
             Customer Details
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field
-              label="Full Name"
-              required
-              error={errors.fullName}
-              className="sm:col-span-2"
-            >
+            <Field label="Full Name" required error={errors.fullName} className="sm:col-span-2">
               <input
                 type="text"
                 value={order.fullName}
@@ -206,9 +260,7 @@ export default function CheckoutForm() {
         </section>
 
         <section>
-          <h2 className="font-serif text-xl font-semibold text-[#10271C] mb-4">
-            Start Date
-          </h2>
+          <h2 className="font-serif text-xl font-semibold text-[#10271C] mb-4">Start Date</h2>
           {order.orderType === "subscription" || !order.orderType ? (
             <>
               <Field label="Select delivery start date" required error={errors.startDate}>
@@ -227,16 +279,18 @@ export default function CheckoutForm() {
             </>
           ) : (
             <div className="p-4 rounded-2xl border-2 border-[#10271C] bg-[#10271C]/5">
-              <p className="font-semibold text-[#10271C]">Expected Delivery: Within 2-3 business days</p>
-              <p className="text-sm text-[#666] mt-1">We'll contact you to confirm delivery time</p>
+              <p className="font-semibold text-[#10271C]">
+                Expected Delivery: Within 2–3 business days
+              </p>
+              <p className="text-sm text-[#666] mt-1">
+                We'll contact you to confirm delivery time
+              </p>
             </div>
           )}
         </section>
 
         <section>
-          <h2 className="font-serif text-xl font-semibold text-[#10271C] mb-4">
-            Delivery Time
-          </h2>
+          <h2 className="font-serif text-xl font-semibold text-[#10271C] mb-4">Delivery Time</h2>
           <div className="p-4 rounded-2xl border-2 border-[#10271C] bg-[#10271C]/5">
             <div className="flex items-center gap-3">
               <span className="w-4 h-4 rounded-full bg-[#10271C]" />
@@ -252,50 +306,90 @@ export default function CheckoutForm() {
           <OrderSummary order={order} variant="checkout" />
         </div>
 
+        {submitError && (
+          <p className="text-red-500 text-sm text-center">{submitError}</p>
+        )}
+
         <motion.button
           type="submit"
           disabled={loading || success}
-          className="w-full py-4 rounded-2xl font-semibold text-white text-lg disabled:opacity-70"
+          className="w-full py-4 rounded-2xl font-semibold text-white text-lg disabled:opacity-70 flex items-center justify-center gap-2"
           style={{ background: "#10271C" }}
           whileHover={{ scale: loading ? 1 : 1.02, y: loading ? 0 : -2 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
         >
           {loading ? (
-            <span className="flex items-center justify-center gap-2">
+            <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Processing...
-            </span>
+              Saving your order…
+            </>
           ) : (
             "Checkout via WhatsApp"
           )}
         </motion.button>
       </form>
 
+      {/* Success overlay */}
       <AnimatePresence>
         {success && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#10271C]/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#10271C]/70 backdrop-blur-sm px-4"
           >
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="bg-white rounded-3xl p-10 text-center shadow-2xl mx-4"
+              className="bg-white rounded-3xl p-10 text-center shadow-2xl max-w-sm w-full"
             >
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 400 }}
+                transition={{ delay: 0.15, type: "spring", stiffness: 400 }}
               >
                 <CheckCircle2 className="w-16 h-16 text-[#25d366] mx-auto mb-4" />
               </motion.div>
-              <h3 className="font-serif text-2xl font-semibold text-[#10271C] mb-2">
-                Order Sent!
+
+              <h3 className="font-serif text-2xl font-semibold text-[#10271C] mb-1">
+                Order Placed!
               </h3>
-              <p className="text-[#666]">Opening WhatsApp to confirm your order…</p>
+              <p className="text-[#666] text-sm mb-5">
+                Opening WhatsApp to confirm your order with us.
+              </p>
+
+              {/* Order ID card */}
+              {savedOrderId && (
+                <div className="bg-[#F8F6F0] rounded-2xl p-4 mb-5">
+                  <p className="text-xs text-[#888] uppercase tracking-wider mb-1">
+                    Your Order ID
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-mono font-bold text-xl text-[#10271C] tracking-widest">
+                      {savedOrderId}
+                    </span>
+                    <button
+                      onClick={handleCopyOrderId}
+                      className="p-1.5 rounded-lg hover:bg-[#10271C]/10 transition-colors"
+                      title="Copy order ID"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-[#666]" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-[#888] mt-1">
+                    Save this ID to track your order
+                  </p>
+                </div>
+              )}
+
+              <p className="text-xs text-[#aaa]">
+                You can track this order in My Orders on your profile.
+              </p>
             </motion.div>
           </motion.div>
         )}

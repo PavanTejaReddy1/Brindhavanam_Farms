@@ -1,18 +1,22 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IOrder extends Document {
-  userId: mongoose.Types.ObjectId;
+  orderId: string;          // Human-readable: BRN-XXXXXX
+  userId?: mongoose.Types.ObjectId;  // Optional — guest orders allowed
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   customerAddress: string;
-  productId: mongoose.Types.ObjectId;
+  productId?: mongoose.Types.ObjectId;
   productName: string;
   quantity: string;
+  plan?: string;            // Daily / Weekly / Monthly / Custom
+  startDate?: string;       // ISO date string
   subscription?: string;
   orderType: "subscription" | "one-time";
-  amount: number;
+  amount: number;           // Grand total
   deliveryCharge: number;
-  subtotal: number;
+  subtotal: number;         // amount - deliveryCharge
   status: "Pending" | "Confirmed" | "Preparing" | "Out for Delivery" | "Delivered" | "Cancelled";
   createdAt: Date;
   updatedAt: Date;
@@ -20,18 +24,31 @@ export interface IOrder extends Document {
 
 const OrderSchema = new Schema<IOrder>(
   {
+    orderId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "User ID is required"],
+      default: null,
     },
     customerName: {
       type: String,
       required: [true, "Customer name is required"],
+      trim: true,
     },
     customerPhone: {
       type: String,
       required: [true, "Customer phone is required"],
+      trim: true,
+    },
+    customerEmail: {
+      type: String,
+      trim: true,
+      default: "",
     },
     customerAddress: {
       type: String,
@@ -40,7 +57,7 @@ const OrderSchema = new Schema<IOrder>(
     productId: {
       type: Schema.Types.ObjectId,
       ref: "Product",
-      required: [true, "Product ID is required"],
+      default: null,
     },
     productName: {
       type: String,
@@ -50,6 +67,14 @@ const OrderSchema = new Schema<IOrder>(
       type: String,
       required: [true, "Quantity is required"],
     },
+    plan: {
+      type: String,
+      default: "",
+    },
+    startDate: {
+      type: String,
+      default: "",
+    },
     subscription: {
       type: String,
       default: "None",
@@ -58,7 +83,6 @@ const OrderSchema = new Schema<IOrder>(
       type: String,
       enum: ["subscription", "one-time"],
       default: "subscription",
-      required: [true, "Order type is required"],
     },
     amount: {
       type: Number,
@@ -70,7 +94,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     subtotal: {
       type: Number,
-      required: [true, "Subtotal is required"],
+      default: 0,
     },
     status: {
       type: String,
@@ -83,6 +107,7 @@ const OrderSchema = new Schema<IOrder>(
   }
 );
 
-const Order: Model<IOrder> = mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
+const Order: Model<IOrder> =
+  mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
 
 export default Order;

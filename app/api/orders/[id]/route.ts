@@ -15,6 +15,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authCheck = await requireAuth("user")(req);
+    if (authCheck.status !== 200) return authCheck;
+
     await connectDB();
 
     const order = await Order.findById(params.id)
@@ -22,19 +25,13 @@ export async function GET(
       .populate("productId", "name price");
 
     if (!order) {
-      return NextResponse.json(
-        { error: "Order not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     return NextResponse.json({ order }, { status: 200 });
   } catch (error) {
     console.error("Get order error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
