@@ -64,8 +64,13 @@ export default function CheckoutForm() {
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
+      // Open WhatsApp then reset so the overlay doesn't persist when the user returns
       setTimeout(() => {
         window.open(buildWhatsAppUrl(order), "_blank");
+        // Give WhatsApp a moment to open, then clear the success state
+        setTimeout(() => {
+          setSuccess(false);
+        }, 2000);
       }, 1200);
     }, 800);
   }
@@ -261,7 +266,7 @@ export default function CheckoutForm() {
               Processing...
             </span>
           ) : (
-            "Proceed to Pay"
+            "Checkout via WhatsApp"
           )}
         </motion.button>
       </form>
@@ -288,9 +293,9 @@ export default function CheckoutForm() {
                 <CheckCircle2 className="w-16 h-16 text-[#25d366] mx-auto mb-4" />
               </motion.div>
               <h3 className="font-serif text-2xl font-semibold text-[#10271C] mb-2">
-                Order Ready!
+                Order Sent!
               </h3>
-              <p className="text-[#666]">Redirecting you to WhatsApp...</p>
+              <p className="text-[#666]">Opening WhatsApp to confirm your order…</p>
             </motion.div>
           </motion.div>
         )}
