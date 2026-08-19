@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Subscription from "@/models/Subscription";
-import { requireAuth } from "@/lib/auth";
+import SubscriptionDelivery from "@/models/SubscriptionDelivery";
+import { requireAuth, getUserFromToken } from "@/lib/auth";
 import { z } from "zod";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-const updateSubscriptionSchema = z.object({
+const updateSchema = z.object({
   status: z.enum(["Active", "Paused", "Cancelled", "Expired"]).optional(),
   nextDelivery: z.string().optional(),
   remainingDays: z.number().optional(),
@@ -17,26 +18,23 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const user = getUserFromToken(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     await connectDB();
 
-    const subscription = await Subscription.findById(params.id)
-      .populate("userId", "name email phone")
-      .populate("productId", "name price");
+    const sub = await Subscription.findById(params.id).lean() as any;
+    if (!sub) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (!subscription) {
-      return NextResponse.json(
-        { error: "Subscription not found" },
-        { status: 404 }
-      );
-    }
+    // Attach all delivery days
+    const deliveries = await SubscriptionDelivery.find({ subscriptionId: params.id })
+      .sort({ dayNumber: 1 })
+      .lean();
 
-    return NextResponse.json({ subscription }, { status: 200 });
+    return NextResponse.json({ subscription: { ...sub, deliveries } }, { status: 200 });
   } catch (error) {
-    console.error("Get subscription error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("GET subscription error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -49,40 +47,24 @@ export async function PUT(
     if (authCheck.status !== 200) return authCheck;
 
     const body = await req.json();
-    const validatedData = updateSubscriptionSchema.parse(body);
+    const data = updateSchema.parse(body);
 
     await connectDB();
 
-    const subscription = await Subscription.findByIdAndUpdate(
+    const sub = await Subscription.findByIdAndUpdate(
       params.id,
-      { $set: validatedData },
+      { $set: data },
       { new: true, runValidators: true }
     );
+    if (!sub) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (!subscription) {
-      return NextResponse.json(
-        { error: "Subscription not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: "Subscription updated successfully", subscription },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Updated", subscription: sub }, { status: 200 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0].message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.issues[0].message }, { status: 400 });
     }
-
-    console.error("Update subscription error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("PUT subscription error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -96,24 +78,15 @@ export async function DELETE(
 
     await connectDB();
 
-    const subscription = await Subscription.findByIdAndDelete(params.id);
+    const sub = await Subscription.findByIdAndDelete(params.id);
+    if (!sub) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (!subscription) {
-      return NextResponse.json(
-        { error: "Subscription not found" },
-        { status: 404 }
-      );
-    }
+    // Also delete all delivery day records
+    await SubscriptionDelivery.deleteMany({ subscriptionId: params.id });
 
-    return NextResponse.json(
-      { message: "Subscription deleted successfully" },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Deleted" }, { status: 200 });
   } catch (error) {
-    console.error("Delete subscription error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("DELETE subscription error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

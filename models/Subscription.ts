@@ -1,13 +1,20 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface ISubscription extends Document {
-  userId: mongoose.Types.ObjectId;
-  productId: mongoose.Types.ObjectId;
+  orderId?: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  customerAddress: string;
   productName: string;
   quantity: string;
-  plan: "Daily" | "Weekly" | "Monthly";
+  plan: string;           // "15 Days" | "30 Days" | "Custom (N Days)" | raw string
+  totalDays: number;
   startDate: Date;
+  endDate: Date;
   nextDelivery: Date;
+  amount: number;
   status: "Active" | "Paused" | "Cancelled" | "Expired";
   remainingDays: number;
   createdAt: Date;
@@ -16,52 +23,32 @@ export interface ISubscription extends Document {
 
 const SubscriptionSchema = new Schema<ISubscription>(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "User ID is required"],
-    },
-    productId: {
-      type: Schema.Types.ObjectId,
-      ref: "Product",
-      required: [true, "Product ID is required"],
-    },
-    productName: {
-      type: String,
-      required: [true, "Product name is required"],
-    },
-    quantity: {
-      type: String,
-      required: [true, "Quantity is required"],
-    },
-    plan: {
-      type: String,
-      enum: ["Daily", "Weekly", "Monthly"],
-      required: [true, "Plan is required"],
-    },
-    startDate: {
-      type: Date,
-      required: [true, "Start date is required"],
-    },
-    nextDelivery: {
-      type: Date,
-      required: [true, "Next delivery date is required"],
-    },
+    orderId: { type: Schema.Types.ObjectId, ref: "Order", default: null },
+    userId:  { type: Schema.Types.ObjectId, ref: "User",  default: null },
+    customerName:    { type: String, required: true, trim: true },
+    customerPhone:   { type: String, required: true, trim: true },
+    customerEmail:   { type: String, default: "" },
+    customerAddress: { type: String, required: true },
+    productName: { type: String, required: true },
+    quantity:    { type: String, required: true },
+    plan:        { type: String, required: true },
+    totalDays:   { type: Number, required: true, min: 1 },
+    startDate:   { type: Date,   required: true },
+    endDate:     { type: Date,   required: true },
+    nextDelivery:{ type: Date,   required: true },
+    amount:      { type: Number, default: 0 },
     status: {
       type: String,
       enum: ["Active", "Paused", "Cancelled", "Expired"],
       default: "Active",
     },
-    remainingDays: {
-      type: Number,
-      default: 30,
-    },
+    remainingDays: { type: Number, default: 0 },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-const Subscription: Model<ISubscription> = mongoose.models.Subscription || mongoose.model<ISubscription>("Subscription", SubscriptionSchema);
+const Subscription: Model<ISubscription> =
+  mongoose.models.Subscription ||
+  mongoose.model<ISubscription>("Subscription", SubscriptionSchema);
 
 export default Subscription;

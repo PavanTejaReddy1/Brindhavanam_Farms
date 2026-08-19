@@ -63,7 +63,6 @@ export default function CheckoutForm() {
     setLoading(true);
 
     try {
-      // Build full address string
       const address = [
         order.houseNumber,
         order.street,
@@ -76,43 +75,67 @@ export default function CheckoutForm() {
         .filter(Boolean)
         .join(", ");
 
-      // Save order to database
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const res = await fetch("/api/orders", {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      // 1. Always save an order record
+      const orderRes = await fetch("/api/orders", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers,
         body: JSON.stringify({
-          customerName: order.fullName,
-          customerPhone: order.phone,
-          customerEmail: order.email || "",
+          customerName:    order.fullName,
+          customerPhone:   order.phone,
+          customerEmail:   order.email || "",
           customerAddress: address,
-          productName: order.productName,
-          quantity: order.quantityLabel,
-          plan: order.plan,
-          startDate: order.startDate,
-          orderType: order.orderType || "subscription",
-          amount: order.grandTotal,
-          deliveryCharge: order.deliveryCharges ?? 0,
-          subtotal: order.grandTotal - (order.deliveryCharges ?? 0),
+          productName:     order.productName,
+          quantity:        order.quantityLabel,
+          plan:            order.plan,
+          startDate:       order.startDate,
+          orderType:       order.orderType || "subscription",
+          amount:          order.grandTotal,
+          deliveryCharge:  order.deliveryCharges ?? 0,
+          subtotal:        order.grandTotal - (order.deliveryCharges ?? 0),
         }),
       });
 
-      const data = await res.json();
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || "Failed to save order");
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to save order");
+      const savedOrderId: string = orderData.orderId || orderData.order?.orderId || "";
+      const savedOrderMongoId: string = orderData.order?._id || "";
+
+      // 2. If it's a subscription, also create the subscription + daily delivery docs
+      if ((order.orderType || "subscription") === "subscription") {
+        const subsRes = await fetch("/api/subscriptions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            orderId:         savedOrderMongoId,
+            customerName:    order.fullName,
+            customerPhone:   order.phone,
+            customerEmail:   order.email || "",
+            customerAddress: address,
+            productName:     order.productName,
+            quantity:        order.quantityLabel,
+            plan:            order.plan,
+            totalDays:       order.subscriptionDays,
+            startDate:       order.startDate,
+            amount:          order.grandTotal,
+          }),
+        });
+        const subsData = await subsRes.json();
+        if (!subsRes.ok) {
+          // Non-fatal — order is already saved; log the issue
+          console.warn("Subscription creation failed:", subsData.error);
+        }
       }
 
-      const orderId: string = data.orderId || data.order?.orderId || "";
-      setSavedOrderId(orderId);
+      setSavedOrderId(savedOrderId);
       setLoading(false);
       setSuccess(true);
 
-      // Open WhatsApp immediately — no setTimeout so browser doesn't treat it as a popup.
-      // Use location.href on mobile (direct navigation) and window.open on desktop.
+      // Open WhatsApp immediately — no setTimeout avoids popup block
       const waUrl = buildWhatsAppUrl(order);
       const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
       if (isMobile) {
@@ -121,10 +144,7 @@ export default function CheckoutForm() {
         window.open(waUrl, "_blank", "noopener,noreferrer");
       }
 
-      // Reset order context after a delay so the user can note the order ID
-      setTimeout(() => {
-        resetOrder();
-      }, 10000);
+      setTimeout(() => { resetOrder(); }, 10000);
     } catch (err: any) {
       setLoading(false);
       setSubmitError(err.message || "Something went wrong. Please try again.");
